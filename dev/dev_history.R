@@ -98,7 +98,7 @@ usethis::use_build_ignore("_pkgdown.yml")
 attachment::att_amend_desc(
   pkg_ignore = c("testthat", "dummypackage", "rstudioapi"),
   extra.suggests = c("testthat", "pkgload", "rstudioapi")#,
-  # "MASS", "lattice", "Matrix")
+  # "MASS", "nlme", "Matrix")
 )
 # attachment::create_dependencies_file()
 

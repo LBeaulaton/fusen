@@ -594,12 +594,13 @@ usethis::with_project(dummypackage, {
     expect_equal(length(datadoc_lines), 13)
     expect_equal(datadoc_lines[13], "\"cars\"")
 
+    skip_on_cran()
     # skip_if_not(interactive())
     # Needs MASS, lattice, Matrix installed
-    skip_if_not(requireNamespace("MASS") &
-        requireNamespace("lattice") &
-        requireNamespace("Matrix")
-    )
+    # skip_if_not(requireNamespace("MASS") &
+    #     requireNamespace("nlme") &
+    #     requireNamespace("Matrix")
+    # )
 
     checkdir <- tempfile("dircheck")
     # Disable checking for future file timestamps
@@ -607,18 +608,65 @@ usethis::with_project(dummypackage, {
       new = c(`_R_CHECK_SYSTEM_CLOCK_` = 0),
       {
 
-        withr::local_package("MASS")
-        withr::local_package("lattice")
-        withr::local_package("Matrix")
+        # withr::local_package("MASS")
+        # withr::local_package("nlme")
+        # withr::local_package("Matrix")
 
+        # withr::local_envvar(
+        #   "_R_CHECK_CRAN_INCOMING_REMOTE_" = NA_character_,
+        #   "_R_CHECK_CRAN_INCOMING_" = NA_character_,
+        #   "_R_CHECK_FORCE_SUGGESTS_" = NA_character_
+        # )
+        # withr::local_environment(globalenv())
+
+        libpaths <- .libPaths()
+        # libpaths <- c(tempfile(), libpaths)
+        libpaths <- libpaths[!grepl(tempdir(), libpaths, fixed = TRUE)]
+        libpaths <- libpaths[!grepl("RLIBS_", libpaths, fixed = TRUE)]
+
+        sink(file = "~/libout_src.log")
+        base <- unlist(tools:::.get_standard_package_names()[c("base", "recommended")],
+                       use.names = FALSE)
+        base <- base[dir.exists(file.path(.Library, base))]
+        print("-- tempdir() --")
+        print(tempdir())
+        print("-- .Library --")
+        print(.Library)
+        print(" -- .libPaths() --")
+        print(.libPaths())
+        print(" -- libpaths --")
+        print(libpaths)
+        print("-- base --")
+        print(base)
+        sink(NULL)
+
+        usethis::use_testthat()
+
+        cat('
+        sink(file = "~/libout.log")
+        base <- unlist(tools:::.get_standard_package_names()[c("base", "recommended")],
+                       use.names = FALSE)
+        base <- base[dir.exists(file.path(.Library, base))]
+        print("-- .Library --")
+        print(.Library)
+        print(" -- .libPaths() --")
+        print(.libPaths())
+        print("-- base --")
+        print(base)
+        sink(NULL)',
+            file = file.path(dummypackage, "tests", "testthat", "test-libpaths.R"))
+
+        withr::with_libpaths(libpaths, {
         expect_error(
           suppressMessages(
             inflate(pkg = dummypackage, rmd = flat_file,
                     name = "Get started", check = TRUE,
-                    check_dir = checkdir, quiet = TRUE,
+                    check_dir = checkdir, quiet = FALSE,
+                    # libpath = libpaths,
                     overwrite = TRUE)),
           regexp = NA
         )
+        })
       })
     # Should not be any errors with templates
     check_lines <- readLines(file.path(checkdir, paste0(basename(dummypackage), ".Rcheck"), "00check.log"))
